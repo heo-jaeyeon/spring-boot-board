@@ -13,29 +13,104 @@ import java.util.Map;
 
 @RequiredArgsConstructor
 @Service
-public class OAuth2USerCustomService extends DefaultOAuth2UserService {
+public class OAuth2UserCustomService extends DefaultOAuth2UserService {
     private final UserRepository userRepository;
 
     @Override
-    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException{
-        OAuth2User user = super.loadUser(userRequest);
-        saveOrUpdate(user);
-        return user;
+    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+        try {
+            System.out.println("✅ loadUser() 진입 확인됨");
 
+            OAuth2User oAuth2User = super.loadUser(userRequest);
+            String registrationId = userRequest.getClientRegistration().getRegistrationId();
+            System.out.println("✅ registrationId = " + registrationId);
+            System.out.println("✅ attributes = " + oAuth2User.getAttributes());
+
+            saveOrUpdate(oAuth2User, registrationId);
+
+            return oAuth2User;
+
+        } catch (Exception e) {
+            System.err.println("❌ loadUser() 내부 오류 발생: " + e.getMessage());
+            e.printStackTrace(); // 상세 예외 로그
+            throw new OAuth2AuthenticationException("카카오 로그인 중 오류 발생" + e);
+        }
     }
+
 
     //유저가 있으면 업데이트, 없으면 유저 생성
-    private User saveOrUpdate(OAuth2User oAuth2User){
+    private User saveOrUpdate(OAuth2User oAuth2User, String registrationId){
         Map<String,Object> attributes = oAuth2User.getAttributes();
-        String email = (String) attributes.get("email");
-        String name = (String) attributes.get("name");
+        String email = null;
+        String name = null;
+
+        if("kakao".equals(registrationId)){
+            System.out.println("✅ 1단계: attributes 가져옴");
+            Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
+            System.out.println("✅ 2단계: kakao_account 가져옴 = " + kakaoAccount);
+            Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+            System.out.println("✅ 3단계: profile 가져옴 = " + profile);
+
+            email = (String) kakaoAccount.get("email");
+            System.out.println("✅ 4단계: email = " + email);
+            name = (String) profile.get("nickname");
+            System.out.println("✅ 5단계: nickname = " + name);
+
+            if(email == null){
+                throw new OAuth2AuthenticationException("카카오에서 이메일을 제공하지 않았습니다.");
+            }
+        }else{
+            email = (String) attributes.get("email");
+            name = (String) attributes.get("name");
+        }
+
+        String finalName = name;
+        System.out.println("name =" + finalName);
+        System.out.println("email =" + email);
         User user = userRepository.findByEmail(email)
-                .map(entity->entity.update(name))
+                .map(entity->entity.update(finalName))
                 .orElse(User.builder()
                         .email(email)
-                        .nickname(name)
+                        .nickname(finalName)
                         .build());
         return userRepository.save(user);
-
     }
+// 추가내용
+//    @Override
+//    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+//        System.out.println("✅ 진입 확인: loadUser() 실행됨!");
+//        OAuth2User oAuth2User = super.loadUser(userRequest);
+//
+//        String registrationId = userRequest.getClientRegistration().getRegistrationId();
+//        System.out.println("✅ registrationId = " + registrationId);
+//        System.out.println("✅ attributes = " + oAuth2User.getAttributes()); // google or kakao
+//        String userNameAttributeName = userRequest.getClientRegistration()
+//                .getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
+//
+//        Map<String, Object> attributes = oAuth2User.getAttributes();
+//        Map<String, Object> userAttributes;
+//
+//        if (registrationId.isEmpty()) {
+//            Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
+//            Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+//            String email = (String) kakaoAccount.get("email");
+//            if (email == null) {
+//                System.out.println("⚠️ 이메일이 null입니다! attributes = " + attributes);
+//                throw new OAuth2AuthenticationException("카카오에서 이메일을 제공하지 않았습니다.");
+//            }
+//            userAttributes = new HashMap<>();
+//            userAttributes.put("id", attributes.get("id"));
+//            userAttributes.put("email", kakaoAccount.get("email"));
+//            userAttributes.put("name", profile.get("nickname"));
+//        } else {
+//            userAttributes = attributes;
+//        }
+//        System.out.println("카카오 전체 attributes: " + attributes);
+//        return new DefaultOAuth2User(
+//                Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
+//                userAttributes,
+//                "email"
+//        );
+//
+//    }
 }

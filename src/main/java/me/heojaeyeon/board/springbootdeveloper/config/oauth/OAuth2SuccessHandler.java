@@ -1,6 +1,7 @@
 package me.heojaeyeon.board.springbootdeveloper.config.oauth;
 
 
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import me.heojaeyeon.board.springbootdeveloper.repository.RefreshTokenRepository
 import me.heojaeyeon.board.springbootdeveloper.service.UserService;
 import me.heojaeyeon.board.springbootdeveloper.util.CookieUtil;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @Component
@@ -32,11 +36,47 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final OAuth2AuthorizationRequestBasedOnCookieRepository authorizationRequestRepository;
     private final UserService userService;
 
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response, Authentication authentication) throws IOException {
-        OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-        User user = userService.findByEmail((String) oAuth2User.getAttribute("email"));
+                                        HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+        OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
+        OAuth2User oAuth2User = token.getPrincipal();
+
+        String registrationId = token.getAuthorizedClientRegistrationId();
+        String email = null;
+        String nickname = null;
+
+        Map<String, Object> attributes = oAuth2User.getAttributes();
+
+        if ("kakao".equals(registrationId)) {
+            Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
+            if (kakaoAccount != null) {
+                email = (String) kakaoAccount.get("email");
+                Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+                if (profile != null) {
+                    nickname = (String) profile.get("nickname");
+                }
+            }
+        } else {
+            email = (String) attributes.get("email");
+            nickname = (String) attributes.get("name");
+        }
+
+
+        if(email == null){
+            System.out.println("카카오 로그인: 이메일 없음");
+            response.sendRedirect("/login?error=email_missing");
+            return;
+        }
+
+        User user = userService.findByEmail(email);
+        if(user == null){
+            System.out.println("사용자없음: " + email);
+            response.sendRedirect("/login?error=email_not_found");
+            return;
+        }
+        //User user = userService.findByEmail((String) oAuth2User.getAttribute("email"));
         String refreshToken = tokenProvider.generateToken(user, REFRESH_TOKEN_DURATION);
         saveRefreshToken(user.getId(), refreshToken);
         addRefreshTokenToCookie(request, response, refreshToken);
