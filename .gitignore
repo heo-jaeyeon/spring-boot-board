@@ -40,3 +40,13 @@ out/
 *.iml
 .idea/
 *.log
+
+src/main/resources/application.yml
+
+# 빌드 도구 및 도구 파일
+*.jar
+*.class
+
+# Git repo 백업 폴더 등
+spring-boot-board.git/
+backup/

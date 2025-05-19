@@ -4,13 +4,14 @@ import lombok.RequiredArgsConstructor;
 import me.heojaeyeon.board.springbootdeveloper.config.jwt.TokenProvider;
 import me.heojaeyeon.board.springbootdeveloper.config.oauth.OAuth2AuthorizationRequestBasedOnCookieRepository;
 import me.heojaeyeon.board.springbootdeveloper.config.oauth.OAuth2SuccessHandler;
-import me.heojaeyeon.board.springbootdeveloper.config.oauth.OAuth2USerCustomService;
+import me.heojaeyeon.board.springbootdeveloper.config.oauth.OAuth2UserCustomService;
 import me.heojaeyeon.board.springbootdeveloper.repository.RefreshTokenRepository;
 import me.heojaeyeon.board.springbootdeveloper.service.UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,8 +24,9 @@ import static org.springframework.boot.autoconfigure.security.servlet.PathReques
 
 @RequiredArgsConstructor
 @Configuration
+@EnableWebSecurity
 public class WebOAuthSecurityConfig {
-    private final OAuth2USerCustomService oAuth2USerCustomService;
+    private final OAuth2UserCustomService oAuth2UserCustomService;
     private final TokenProvider tokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserService userService;
@@ -55,15 +57,20 @@ public class WebOAuthSecurityConfig {
                 .requestMatchers("/api/token").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll();
+        //다음 설정이 잘 되어 있어서 카카오 provider가 자동으로 붙게 된다.
         http.oauth2Login()
                 .loginPage("/login")
                 .authorizationEndpoint()
                 //Authorization 요청과 관련된 상태 저장
                 .authorizationRequestRepository(oAuth2AuthorizationRequestBasedOnCookieRepository())
                 .and()
-                .successHandler(oAuth2SuccessHandler())//인증 성공 시 실행할 핸들러
-                .userInfoEndpoint()
-                .userService(oAuth2USerCustomService);
+                .userInfoEndpoint(userInfo -> userInfo
+                        .userService(oAuth2UserCustomService))
+                .successHandler(oAuth2SuccessHandler())
+                .failureHandler((request, response, exception) -> {
+                    exception.printStackTrace(); // ✅ 콘솔에 예외 출력
+                    response.sendRedirect("/login?error");
+                });
 
         http.logout().logoutSuccessUrl("/login");
 
