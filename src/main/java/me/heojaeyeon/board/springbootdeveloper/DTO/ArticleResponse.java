@@ -9,6 +9,7 @@ public class ArticleResponse {
     private final String title;
     private final String content;
 
+    //ArticleResponse에 있는 데이터를 가져옴
     public ArticleResponse(Article article){
         this.id = article.getId();
         this.title = article.getTitle();

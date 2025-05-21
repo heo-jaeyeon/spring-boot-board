@@ -75,6 +75,7 @@ public class BlogService {
         }
     }
 
+
     public List<ArticleResponse> findAllArticles() {
         return blogRepository.findAll()
                 .stream()
