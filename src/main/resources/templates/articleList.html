@@ -22,7 +22,21 @@
     <button type="button" id="create-btn"
             th:onclick="|location.href='@{/new-article}'|"
             class="btn btn-secondary btn-sm mb-3">글 등록</button>
-    <div class="row-6" th:each="item : ${articles}">
+    <form method="get" action="/articles/search" >
+        <div class="input-group mb-3">
+            <input type="text" id="searchInput" name="keyword" class="form-control" placeholder="제목 또는 내용을 입력하세요"
+            th:value="${keyword}">
+         <div class="input-group-append">
+               <button class="btn btn-outline-secondary" type="submit">검색</button>
+          </div>
+      </div>
+    </form>
+
+    <div th:if="${#lists.isEmpty(articles)}">
+        <p>게시글이 없습니다.</p>
+    </div>
+
+    <div class="mb-3" th:each="item : ${articles}">
         <div class="card">
             <div class="card-header" th:text="${item.id}">
             </div>
@@ -33,13 +47,16 @@
                    class="btn btn-primary">보러가기</a>
             </div>
         </div>
-        <br>
+
     </div>
 
     <button type="button" class="btn btn-secondary" onclick="location.href='/logout'">로그아웃</button>
 </div>
     <script src="/js/token.js"></script>
     <script src="/js/article.js"></script>
+
+
+
 
 </body>
 </html>

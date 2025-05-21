@@ -3,6 +3,7 @@ package me.heojaeyeon.board.springbootdeveloper.controller;
 
 import lombok.RequiredArgsConstructor;
 import me.heojaeyeon.board.springbootdeveloper.DTO.ArticleListViewResponse;
+import me.heojaeyeon.board.springbootdeveloper.DTO.ArticleResponse;
 import me.heojaeyeon.board.springbootdeveloper.DTO.ArticleViewResponse;
 import me.heojaeyeon.board.springbootdeveloper.domain.Article;
 import me.heojaeyeon.board.springbootdeveloper.service.BlogService;
@@ -31,6 +32,17 @@ public class BlogViewController {
         return "articleList";
     }
 
+    @GetMapping("/articles/search")
+    public String searchByArticle(@RequestParam(value="keyword", required = false) String keyword, Model model){
+        List<ArticleResponse> articles = (keyword != null && !keyword.trim().isEmpty())
+                ? blogService.searchByArticle(keyword)
+                : blogService.findAllArticles();
+
+        model.addAttribute("articles", articles);
+        model.addAttribute("keyword", keyword);
+        return "articleList";
+
+    }
     @GetMapping("/articles/{id}")
     public String getArticle(@PathVariable Long id, Model model) {
         Article article = blogService.findById(id);

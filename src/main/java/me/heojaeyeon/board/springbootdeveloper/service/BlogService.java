@@ -3,6 +3,7 @@ package me.heojaeyeon.board.springbootdeveloper.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import me.heojaeyeon.board.springbootdeveloper.DTO.AddArticleRequest;
+import me.heojaeyeon.board.springbootdeveloper.DTO.ArticleResponse;
 import me.heojaeyeon.board.springbootdeveloper.DTO.UpdateArticleRequest;
 import me.heojaeyeon.board.springbootdeveloper.domain.Article;
 import me.heojaeyeon.board.springbootdeveloper.repository.BlogRepository;
@@ -10,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor //final이 붙거나 @NotNull이 붙은 필드의 생성자 추가
 @Service //빈으로 등록
@@ -23,7 +25,7 @@ public class BlogService {
         return blogRepository.save(request.toEntity(userName));
     }
 
-    //블로그에 있는 모든 글을 자겨오는 메서드
+    //블로그에 있는 모든 글을 가져오는 메서드
     public List<Article> findAll(){
         return blogRepository.findAll();
     }
@@ -32,6 +34,15 @@ public class BlogService {
     public Article findById(Long id){
         return blogRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("not found:" + id));
+    }
+
+    //블로그에 있는 특정 글 가져오기(검색)
+    public List<ArticleResponse> searchByArticle(String keyword){
+        return blogRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(keyword,keyword)
+                .stream()
+                .map(ArticleResponse::new)
+                .collect(Collectors.toList());
+
     }
 
     // 블로그에 있는 글 삭제 메서드
@@ -62,5 +73,12 @@ public class BlogService {
         if(!article.getAuthor().equals(userName)){
             throw new IllegalArgumentException("not found:" + userName);
         }
+    }
+
+    public List<ArticleResponse> findAllArticles() {
+        return blogRepository.findAll()
+                .stream()
+                .map(ArticleResponse::new)
+                .collect(Collectors.toList());
     }
 }

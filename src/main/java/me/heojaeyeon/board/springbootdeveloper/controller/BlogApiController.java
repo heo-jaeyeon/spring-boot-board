@@ -8,6 +8,7 @@ import me.heojaeyeon.board.springbootdeveloper.domain.Article;
 import me.heojaeyeon.board.springbootdeveloper.service.BlogService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -19,12 +20,14 @@ public class BlogApiController {
 
     private final BlogService blogService;
 
+    //게시글 추가
     @PostMapping("/api/articles")
     public ResponseEntity<Article> addArticle(@RequestBody AddArticleRequest request, Principal principal) {
         Article savedArticle = blogService.save(request, principal.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(savedArticle);
     }
 
+    //게시글 전체조회
     @GetMapping("/api/articles")
     public ResponseEntity<List<ArticleResponse>> findAllArticles(){
         List<ArticleResponse> articles = blogService.findAll()
@@ -36,6 +39,7 @@ public class BlogApiController {
                 .body(articles);
     }
 
+
     @GetMapping("/api/articles/{id}")
     // URL 경로에서 값 추출
     public ResponseEntity<ArticleResponse> findArticle(@PathVariable Long id){
@@ -45,6 +49,7 @@ public class BlogApiController {
                 .body(new ArticleResponse(article));
     }
 
+    //게시글 삭제
     @DeleteMapping("/api/articles/{id}")
     public ResponseEntity<Void> deleteArticle(@PathVariable Long id){
         blogService.delete(id);
@@ -53,6 +58,7 @@ public class BlogApiController {
                 .build();
     }
 
+    //게시글 수정
     @PutMapping("/api/articles/{id}")
     public ResponseEntity<Article> updateArticle(@PathVariable Long id,
            @RequestBody UpdateArticleRequest request) {
